@@ -1,9 +1,12 @@
-import Anthropic from '@anthropic-ai/sdk'
+import OpenAI from 'openai'
 import { createClient } from '@/lib/supabase-server'
 import { NextRequest, NextResponse } from 'next/server'
 import { GENERATE_SYSTEM_PROMPT } from '@/lib/persona'
 
-const anthropic = new Anthropic()
+const qwen = new OpenAI({
+  apiKey: process.env.QWEN_API_KEY,
+  baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+})
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
@@ -19,32 +22,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Brief is required' }, { status: 400 })
   }
 
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    system: [
-      {
-        type: 'text',
-        text: GENERATE_SYSTEM_PROMPT,
-        cache_control: { type: 'ephemeral' },
-      },
-    ],
+  const completion = await qwen.chat.completions.create({
+    model: 'qwen-plus',
+    response_format: { type: 'json_object' },
     messages: [
-      {
-        role: 'user',
-        content: `題目/Brief：${brief}\n語氣：${tone || '輕鬆'}\n\n請生成一篇小紅書貼文。`,
-      },
+      { role: 'system', content: GENERATE_SYSTEM_PROMPT },
+      { role: 'user', content: `題目/Brief：${brief}\n語氣：${tone || '輕鬆'}\n\n請生成一篇小紅書貼文。` },
     ],
   })
 
-  const raw = message.content[0].type === 'text' ? message.content[0].text : ''
-
   let parsed: { title: string; body: string; hashtags: string[] }
   try {
-    const jsonMatch = raw.match(/\{[\s\S]*\}/)
-    parsed = JSON.parse(jsonMatch?.[0] ?? raw)
+    parsed = JSON.parse(completion.choices[0].message.content || '{}')
   } catch {
-    return NextResponse.json({ error: 'Failed to parse AI response', raw }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 500 })
   }
 
   const { data: post, error } = await supabase
