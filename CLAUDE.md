@@ -5,10 +5,11 @@
 Postone is an internal AI-powered 小紅書 content generator for Jones Ng (Chiwa DCM Group).
 It generates 小紅書-native posts in Jones' voice using the Claude API.
 
-Phase 1: AI copy generation (this repo).
-Phase 2: Publish to 小紅書 via Playwright (no official API available).
-Phase 3: Chinese platform matrix (Crebee.cn integration).
-Phase 4: Western platform matrix (SocialEcho integration).
+Phase 1: AI copy generation ✅ 已完成
+Phase 1b: 以圖生文（圖片上傳 → Qwen VL 視覺分析 → 小紅書文案）✅ 已完成
+Phase 2: 發佈到小紅書（Playwright 自動化，無官方 API）
+Phase 3: 中文平台矩陣（Crebee.cn 整合）
+Phase 4: 西方平台矩陣（SocialEcho 整合）
 
 ## Jones' Brand Voice
 
@@ -44,9 +45,9 @@ Row-level security is enabled — users only see their own posts.
 | File | Purpose |
 |------|---------|
 | `src/lib/persona.ts` | Jones' AI voice prompt — edit to tune output |
-| `src/app/api/generate/route.ts` | Claude API call with prompt caching |
+| `src/app/api/generate/route.ts` | Qwen API — 純文字用 qwen-plus，有圖用 qwen-vl-plus（視覺模型）|
 | `src/middleware.ts` | Auth redirect guard |
-| `src/components/GenerateForm.tsx` | Brief input + tone selector |
+| `src/components/GenerateForm.tsx` | Brief input + 圖片上傳 + tone selector |
 | `src/components/OutputCard.tsx` | Generated post display + copy button |
 | `src/components/DraftList.tsx` | Drafts history with status toggle |
 

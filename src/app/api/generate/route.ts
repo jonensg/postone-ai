@@ -16,33 +16,47 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { brief, tone } = await req.json()
+  const { brief, tone, imageBase64, imageType } = await req.json()
 
-  if (!brief?.trim()) {
-    return NextResponse.json({ error: 'Brief is required' }, { status: 400 })
+  if (!imageBase64 && !brief?.trim()) {
+    return NextResponse.json({ error: '請輸入題目或上傳圖片' }, { status: 400 })
   }
 
+  const userText = imageBase64
+    ? `請根據這張產品圖片生成一篇小紅書圖文貼文。語氣：${tone || '輕鬆'}。${brief ? `額外說明：${brief}` : ''}`
+    : `題目/Brief：${brief}\n語氣：${tone || '輕鬆'}\n\n請生成一篇小紅書貼文。`
+
+  const userContent = imageBase64
+    ? [
+        { type: 'image_url' as const, image_url: { url: `data:${imageType || 'image/jpeg'};base64,${imageBase64}` } },
+        { type: 'text' as const, text: userText },
+      ]
+    : userText
+
   const completion = await qwen.chat.completions.create({
-    model: 'qwen-plus',
-    response_format: { type: 'json_object' },
+    model: imageBase64 ? 'qwen-vl-plus' : 'qwen-plus',
+    ...(imageBase64 ? {} : { response_format: { type: 'json_object' as const } }),
     messages: [
       { role: 'system', content: GENERATE_SYSTEM_PROMPT },
-      { role: 'user', content: `題目/Brief：${brief}\n語氣：${tone || '輕鬆'}\n\n請生成一篇小紅書貼文。` },
+      { role: 'user', content: userContent },
     ],
   })
 
+  const raw = completion.choices[0].message.content || '{}'
+
   let parsed: { title: string; body: string; hashtags: string[] }
   try {
-    parsed = JSON.parse(completion.choices[0].message.content || '{}')
+    const jsonMatch = raw.match(/\{[\s\S]*\}/)
+    parsed = JSON.parse(jsonMatch?.[0] ?? raw)
   } catch {
-    return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 500 })
+    return NextResponse.json({ error: '解析 AI 回應失敗' }, { status: 500 })
   }
 
   const { data: post, error } = await supabase
     .from('posts')
     .insert({
       user_id: user.id,
-      brief,
+      brief: brief || '（以圖生文）',
       tone: tone || '輕鬆',
       title: parsed.title,
       body: parsed.body,
