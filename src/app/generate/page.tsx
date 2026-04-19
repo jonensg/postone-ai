@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { Suspense, useState } from 'react'
 import GenerateForm, { type GeneratedPost } from '@/components/GenerateForm'
 import OutputCard from '@/components/OutputCard'
+import Nav from '@/components/Nav'
 
 export default function GeneratePage() {
   const [post, setPost] = useState<GeneratedPost | null>(null)
@@ -11,20 +11,7 @@ export default function GeneratePage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      <header
-        className="flex items-center justify-between px-6 py-4"
-        style={{ borderBottom: '1px solid var(--border)' }}
-      >
-        <h1 className="text-xl" style={{ fontFamily: 'var(--font-heading)', color: 'var(--gold)' }}>
-          Postone
-        </h1>
-        <nav className="flex items-center gap-4 text-sm" style={{ color: 'var(--text-muted)' }}>
-          <span style={{ color: '#fff' }}>生成</span>
-          <Link href="/drafts" className="hover:text-white transition-colors">
-            草稿庫
-          </Link>
-        </nav>
-      </header>
+      <Nav />
 
       <main className="max-w-2xl mx-auto px-4 py-10 space-y-8">
         <div>
@@ -40,11 +27,13 @@ export default function GeneratePage() {
           className="rounded-xl p-6"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
         >
-          <GenerateForm
-            onResult={setPost}
-            onLoading={setLoading}
-            loading={loading}
-          />
+          <Suspense fallback={<div className="text-sm" style={{ color: 'var(--text-muted)' }}>載入中...</div>}>
+            <GenerateForm
+              onResult={setPost}
+              onLoading={setLoading}
+              loading={loading}
+            />
+          </Suspense>
         </div>
 
         {loading && (

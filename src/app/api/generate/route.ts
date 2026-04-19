@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { brief, tone, imageBase64, imageType } = await req.json()
+  const { brief, tone, imageBase64, imageType, platforms, scheduledAt } = await req.json()
 
   if (!imageBase64 && !brief?.trim()) {
     return NextResponse.json({ error: '請輸入題目或上傳圖片' }, { status: 400 })
@@ -61,6 +61,9 @@ export async function POST(req: NextRequest) {
       title: parsed.title,
       body: parsed.body,
       hashtags: parsed.hashtags,
+      platforms: Array.isArray(platforms) ? platforms : [],
+      scheduled_at: scheduledAt || null,
+      status: scheduledAt ? 'scheduled' : 'draft',
     })
     .select()
     .single()

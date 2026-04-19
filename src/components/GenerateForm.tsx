@@ -1,6 +1,7 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 type Tone = '輕鬆' | '專業' | '推廣'
 
@@ -17,18 +18,29 @@ export interface GeneratedPost {
   body: string
   hashtags: string[]
   tone: string
+  platforms?: string[]
+  scheduled_at?: string | null
 }
 
 const TONES: Tone[] = ['輕鬆', '專業', '推廣']
+const PLATFORMS = ['小紅書', '微信', '抖音', 'Instagram', 'Threads', 'X']
 
 export default function GenerateForm({ onResult, onLoading, loading }: Props) {
+  const searchParams = useSearchParams()
   const [brief, setBrief] = useState('')
   const [tone, setTone] = useState<Tone>('輕鬆')
+  const [platforms, setPlatforms] = useState<string[]>(['小紅書'])
+  const [scheduledAt, setScheduledAt] = useState('')
   const [error, setError] = useState('')
   const [imageBase64, setImageBase64] = useState<string | null>(null)
   const [imageType, setImageType] = useState<string>('image/jpeg')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const initial = searchParams.get('brief')
+    if (initial) setBrief(initial)
+  }, [searchParams])
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -49,6 +61,10 @@ export default function GenerateForm({ onResult, onLoading, loading }: Props) {
     if (fileRef.current) fileRef.current.value = ''
   }
 
+  function togglePlatform(p: string) {
+    setPlatforms(prev => (prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]))
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!imageBase64 && !brief.trim()) return
@@ -59,7 +75,14 @@ export default function GenerateForm({ onResult, onLoading, loading }: Props) {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief, tone, imageBase64, imageType }),
+        body: JSON.stringify({
+          brief,
+          tone,
+          imageBase64,
+          imageType,
+          platforms,
+          scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : null,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || '生成失敗')
@@ -75,7 +98,6 @@ export default function GenerateForm({ onResult, onLoading, loading }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-
       {/* 圖片上傳 */}
       <div>
         <label className="block text-sm mb-2" style={{ color: 'var(--text-muted)' }}>
@@ -148,6 +170,45 @@ export default function GenerateForm({ onResult, onLoading, loading }: Props) {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* 平台 */}
+      <div>
+        <label className="block text-sm mb-2" style={{ color: 'var(--text-muted)' }}>發佈平台（可多選）</label>
+        <div className="flex flex-wrap gap-2">
+          {PLATFORMS.map(p => {
+            const active = platforms.includes(p)
+            return (
+              <button
+                key={p}
+                type="button"
+                onClick={() => togglePlatform(p)}
+                className="px-3 py-1.5 rounded text-sm transition-all"
+                style={{
+                  background: active ? 'var(--gold)' : 'var(--surface-2)',
+                  color: active ? '#000' : 'var(--text-muted)',
+                  border: `1px solid ${active ? 'var(--gold)' : 'var(--border)'}`,
+                }}
+              >
+                {p}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* 排程 */}
+      <div>
+        <label className="block text-sm mb-2" style={{ color: 'var(--text-muted)' }}>
+          排程發佈時間 <span style={{ color: 'var(--border)' }}>（選填，日後可喺日曆改）</span>
+        </label>
+        <input
+          type="datetime-local"
+          value={scheduledAt}
+          onChange={e => setScheduledAt(e.target.value)}
+          className="w-full px-4 py-2 rounded-lg text-sm outline-none"
+          style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: '#fff' }}
+        />
       </div>
 
       {error && <p className="text-red-400 text-sm">{error}</p>}

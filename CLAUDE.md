@@ -7,6 +7,7 @@ It generates 小紅書-native posts in Jones' voice using the Claude API.
 
 Phase 1: AI copy generation ✅ 已完成
 Phase 1b: 以圖生文（圖片上傳 → Qwen VL 視覺分析 → 小紅書文案）✅ 已完成
+Phase 1c: 素材庫 + 內容日曆 + 熱門話題 + 數據分析 ✅ 已完成
 Phase 2: 發佈到小紅書（Playwright 自動化，無官方 API）
 Phase 3: 中文平台矩陣（Crebee.cn 整合）
 Phase 4: 西方平台矩陣（SocialEcho 整合）
@@ -37,19 +38,34 @@ ANTHROPIC_API_KEY=
 
 ## Database
 
-Run `supabase/migrations/001_posts.sql` in your Supabase SQL editor.
-Row-level security is enabled — users only see their own posts.
+Run migrations in order in your Supabase SQL editor:
+1. `supabase/migrations/001_posts.sql` — creates `posts` table
+2. `supabase/migrations/002_expand_schema.sql` — adds `platforms`, `scheduled_at`, `metrics` columns + `assets` and `trending_topics` tables
+
+Row-level security is enabled — users only see their own rows.
+
+### Supabase Storage
+Create a **public** bucket named `assets` (Dashboard → Storage → New bucket, toggle Public).
+This is used by 素材庫 (`/assets`) for product image uploads.
 
 ## Key Files
 
 | File | Purpose |
 |------|---------|
 | `src/lib/persona.ts` | Jones' AI voice prompt — edit to tune output |
-| `src/app/api/generate/route.ts` | Qwen API — 純文字用 qwen-plus，有圖用 qwen-vl-plus（視覺模型）|
-| `src/middleware.ts` | Auth redirect guard |
-| `src/components/GenerateForm.tsx` | Brief input + 圖片上傳 + tone selector |
-| `src/components/OutputCard.tsx` | Generated post display + copy button |
-| `src/components/DraftList.tsx` | Drafts history with status toggle |
+| `src/app/api/generate/route.ts` | Qwen API — 純文字用 qwen-plus，有圖用 qwen-vl-plus |
+| `src/app/api/trending/route.ts` | 熱門話題 AI 推薦 — Qwen 生成 5 個選題 |
+| `src/app/api/assets/route.ts` | 素材庫上傳 — Supabase Storage + assets table |
+| `src/app/api/posts/route.ts` | Posts list + `[id]/route.ts` 支援 PATCH / DELETE |
+| `src/proxy.ts` | Auth redirect guard (Next.js 16) |
+| `src/components/Nav.tsx` | 全站頂部導航 |
+| `src/components/GenerateForm.tsx` | Brief + 圖片 + 平台 + 排程 |
+| `src/app/generate/page.tsx` | 生成頁 |
+| `src/app/drafts/page.tsx` | 草稿庫 |
+| `src/app/calendar/page.tsx` | 內容日曆（月曆視圖 + 排程 modal） |
+| `src/app/trending/page.tsx` | 熱門話題推薦 |
+| `src/app/assets/page.tsx` | 素材庫 |
+| `src/app/analytics/page.tsx` | 數據分析（手動回填 views/likes/etc.） |
 
 ## Adding Features
 

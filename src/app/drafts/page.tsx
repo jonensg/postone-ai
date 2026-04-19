@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import DraftList from '@/components/DraftList'
+import Nav from '@/components/Nav'
 
 export default async function DraftsPage() {
   const supabase = await createClient()
@@ -17,20 +18,7 @@ export default async function DraftsPage() {
 
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
-      <header
-        className="flex items-center justify-between px-6 py-4"
-        style={{ borderBottom: '1px solid var(--border)' }}
-      >
-        <h1 className="text-xl" style={{ fontFamily: 'var(--font-heading)', color: 'var(--gold)' }}>
-          Postone
-        </h1>
-        <nav className="flex items-center gap-4 text-sm" style={{ color: 'var(--text-muted)' }}>
-          <Link href="/generate" className="hover:text-white transition-colors">
-            生成
-          </Link>
-          <span style={{ color: '#fff' }}>草稿庫</span>
-        </nav>
-      </header>
+      <Nav />
 
       <main className="max-w-2xl mx-auto px-4 py-10 space-y-6">
         <div className="flex items-center justify-between">
